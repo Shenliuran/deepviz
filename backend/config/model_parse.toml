@@ -1,0 +1,2 @@
+[attributes]
+keep =  ["in_channels", "out_channels", "kernel_size", "stride", "padding", "in_features", "out_features", "p", "num_features"]

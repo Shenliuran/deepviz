@@ -1,0 +1,49 @@
+{
+  "name": "deepviz-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "type-check": "vue-tsc --watch",
+    "build": "vue-tsc && vite build",
+    "preview": "vite preview",
+    "lint": "eslint . --ext .vue,.js,.jsx,.ts,.tsx,.cjs,.mjs --fix --ignore-path .gitignore",
+    "format": "prettier --write src/"
+  },
+  "dependencies": {
+    "@tweenjs/tween.js": "*",
+    "axios": "^1.6.8",
+    "dat.gui": "^0.7.9",
+    "npm": "^11.4.2",
+    "three": "^0.163.0",
+    "vue": "^3.4.21",
+    "vue-router": "^4.3.0"
+  },
+  "devDependencies": {
+    "@types/dat.gui": "^0.7.12",
+    "@types/node": "^24.1.0",
+    "@types/three": "^0.163.0",
+    "@types/tween.js": "^18.0.2",
+    "@typescript-eslint/eslint-plugin": "^7.7.1",
+    "@typescript-eslint/parser": "^7.7.1",
+    "@vitejs/plugin-vue": "^5.0.4",
+    "@vue/tsconfig": "^0.5.1",
+    "eslint": "^8.57.0",
+    "eslint-plugin-vue": "^9.23.0",
+    "prettier": "^3.2.5",
+    "typescript": "^5.4.5",
+    "vite": "^6.0.0",
+    "vite-plugin-vue-devtools": "^8.0.0",
+    "vue-tsc": "^2.0.6"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not dead"
+  ]
+}

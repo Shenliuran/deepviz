@@ -1,0 +1,285 @@
+<template>
+  <div class="network-visualization">
+    <div ref="canvasContainer" class="canvas-container"></div>
+    <div class="legend">
+      <h3>层类型说明</h3>
+      <div v-for="(item, key) in layerTypes" :key="key" class="legend-item">
+        <div class="legend-color" :style="{ backgroundColor: `#${item.color.toString(16).padStart(6, '0')}` }"></div>
+        <div class="legend-label">{{ key }} - {{ item.shape }}</div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script lang="ts">
+import { defineComponent, ref, onMounted, onBeforeUnmount, render } from 'vue';
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { parseNetwork } from '../utils/parser';
+import networkData from './ordered_data.json';
+import { createLayerGeometry, createLayerMaterial } from '../models/shapeFactory';
+import type { Layer, NodeInfo, LayerTypeInfo } from '../types/nerual-network';
+
+export default defineComponent({
+  name: 'NetworkVisualization',
+  setup() {
+    // refs
+    // const canvasContainer = ref<HTMLDivElement>(null);
+    const canvasContainer = ref<HTMLDivElement>();
+    // 在NeuralNetworkVisualization.vue的<script>部分添加props定义
+    /* const props = defineProps<{
+      networkStructure?: number[];
+      weights?: number[][][];
+      activations?: number[][];
+    }>(); */
+    
+    // 状态
+    const scene = ref<THREE.Scene | null>(null);
+    const camera = ref<THREE.PerspectiveCamera | null>(null);
+    const renderer = ref<THREE.WebGLRenderer | null>(null);
+    const controls = ref<OrbitControls | null>(null);
+    const networkDataParsed = ref<NodeInfo[]>([]);
+    const nodes = ref<THREE.Mesh[]>([]);
+    const lines = ref<THREE.Line[]>([]);
+    
+    // 层类型说明
+    const layerTypes: Record<string, LayerTypeInfo> = {
+      'ResNet': { shape: '大型立方体', color: 0x2196F3 },
+      'Conv2d': { shape: '圆柱体', color: 0x42A5F5 },
+      'BatchNorm2d': { shape: '圆台', color: 0x66BB6A },
+      'ReLU': { shape: '锥体', color: 0xFFCA28 },
+      'MaxPool2d': { shape: '八面体', color: 0x26A69A },
+      'Sequential': { shape: '线框立方体', color: 0xEC407A },
+      'BasicBlock': { shape: '圆角立方体', color: 0xAB47BC },
+      'Linear': { shape: '球体', color: 0xFF7043 },
+      'Identity': { shape: '四面体', color: 0x8D6E63 }
+    };
+    
+    // 初始化Three.js
+    const initThree = () => {
+      if (!canvasContainer.value) return;
+      
+      // 创建场景
+      scene.value = new THREE.Scene();
+      scene.value.background = new THREE.Color(0xf8f9fa);
+      
+      // 创建相机
+      camera.value = new THREE.PerspectiveCamera(
+        75,
+        canvasContainer.value.clientWidth / canvasContainer.value.clientHeight,
+        0.1,
+        10000
+      );
+      camera.value.position.z = 1000;
+      
+      // 创建渲染器
+      renderer.value = new THREE.WebGLRenderer({ antialias: true });
+      renderer.value.setSize(
+        canvasContainer.value.clientWidth,
+        canvasContainer.value.clientHeight
+      );
+      canvasContainer.value.appendChild(renderer.value.domElement);
+      
+      // 添加控制器
+      if (camera.value && renderer.value) {
+        controls.value = new OrbitControls(camera.value, renderer.value.domElement);
+        controls.value.enableDamping = true;
+      }
+      
+      // 添加光源
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+      scene.value.add(ambientLight);
+      
+      const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+      directionalLight.position.set(100, 200, 300);
+      scene.value.add(directionalLight);
+    };
+    
+    // 创建可视化
+    const createVisualization = () => {
+      if (!scene.value) return;
+      
+      // 解析网络数据
+      networkDataParsed.value = parseNetwork(networkData as any);
+      
+      // 创建节点
+      createNodes(networkDataParsed.value);
+      
+      // 创建连接线
+      createConnections(networkDataParsed.value);
+    };
+    
+    // 创建节点
+    const createNodes = (nodesData: NodeInfo[]) => {
+      if (!scene.value) return;
+      
+      nodesData.forEach(nodeInfo => {
+        const geometry = createLayerGeometry(nodeInfo.node.type);
+        const material = createLayerMaterial(nodeInfo.node.type);
+        
+        const mesh = new THREE.Mesh(geometry, material);
+        
+        // 设置位置
+        mesh.position.set(nodeInfo.x, nodeInfo.y, nodeInfo.z);
+        mesh.userData.id = nodeInfo.id;
+        mesh.userData.type = nodeInfo.node.type;
+        mesh.userData.layer = nodeInfo.node;
+        
+        // 调整某些形状的旋转
+        if (['Conv2d', 'BatchNorm2d', 'ReLU'].includes(nodeInfo.node.type)) {
+          mesh.rotation.z = Math.PI / 2;
+        }
+        
+        scene.value!.add(mesh);
+        nodes.value.push(mesh);
+        
+        // 添加标签
+        addLabel(mesh, nodeInfo.node.name, nodeInfo.node.type);
+      });
+    };
+    
+    // 添加标签
+    const addLabel = (mesh: THREE.Mesh, name: string, type: string) => {
+      // 这里可以实现HTML标签或Canvas纹理标签
+      // 简化实现，实际项目中可以使用three-spritetext等库
+    };
+    
+    // 创建连接
+    const createConnections = (nodesData: NodeInfo[]) => {
+      if (!scene.value) return;
+      
+      const nodeMap = new Map<string, NodeInfo>();
+      nodesData.forEach(node => nodeMap.set(node.id, node));
+      
+      nodesData.forEach(nodeInfo => {
+        if (nodeInfo.parentId && nodeMap.has(nodeInfo.parentId)) {
+          const parent = nodeMap.get(nodeInfo.parentId)!;
+          createLine(
+            { x: parent.x, y: parent.y, z: parent.z },
+            { x: nodeInfo.x, y: nodeInfo.y, z: nodeInfo.z }
+          );
+        }
+        
+        // 处理残差连接
+        if (nodeInfo.node.residual_connection) {
+          const sourceId = `${nodeInfo.node.residual_connection.input_source}-${nodeInfo.node.name}`;
+          if (nodeMap.has(sourceId)) {
+            const source = nodeMap.get(sourceId)!;
+            createLine(
+              { x: source.x, y: source.y, z: source.z },
+              { x: nodeInfo.x, y: nodeInfo.y, z: nodeInfo.z },
+              0xff0000 // 残差连接使用红色
+            );
+          }
+        }
+      });
+    };
+    
+    // 创建连接线
+    const createLine = (
+      start: { x: number, y: number, z: number },
+      end: { x: number, y: number, z: number },
+      color = 0x999999
+    ) => {
+      if (!scene.value) return;
+      
+      const geometry = new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(start.x, start.y, start.z),
+        new THREE.Vector3(end.x, end.y, end.z)
+      ]);
+      
+      const material = new THREE.LineBasicMaterial({ color });
+      const line = new THREE.Line(geometry, material);
+      
+      scene.value.add(line);
+      lines.value.push(line);
+    };
+    
+    // 动画循环
+    const animate = () => {
+      requestAnimationFrame(animate);
+      
+      if (controls.value) {
+        controls.value.update();
+      }
+      
+      if (renderer.value && scene.value && camera.value) {
+        renderer.value.render(scene.value, camera.value);
+      }
+    };
+    
+    // 处理窗口大小变化
+    const handleResize = () => {
+      if (!canvasContainer.value || !camera.value || !renderer.value) return;
+      
+      const width = canvasContainer.value.clientWidth;
+      const height = canvasContainer.value.clientHeight;
+      
+      camera.value.aspect = width / height;
+      camera.value.updateProjectionMatrix();
+      renderer.value.setSize(width, height);
+    };
+    
+    // 生命周期
+    onMounted(() => {
+      initThree();
+      createVisualization();
+      animate();
+      window.addEventListener('resize', handleResize);
+    });
+    
+    onBeforeUnmount(() => {
+      window.removeEventListener('resize', handleResize);
+      // 清理资
+      if (renderer.value && canvasContainer.value) {
+        canvasContainer.value.removeChild(renderer.value.domElement);
+      }
+    });
+    
+    return {
+      canvasContainer,
+      layerTypes
+    };
+  }
+});
+</script>
+
+<style scoped>
+.canvas-container {
+  width: 100%;
+  height: 800px;
+  position: relative;
+}
+
+.legend {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 15px;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  z-index: 100;
+  max-width: 250px;
+}
+
+.legend h3 {
+  margin-top: 0;
+  font-size: 16px;
+  color: #333;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  margin: 8px 0;
+  font-size: 12px;
+}
+
+.legend-color {
+  width: 12px;
+  height: 12px;
+  margin-right: 8px;
+  border-radius: 2px;
+}
+</style>

@@ -34,7 +34,8 @@ export default defineComponent({
     }>(); */
     
     // 状态
-    const scene = ref<THREE.Scene | null>(null);
+    // const scene = ref<THREE.Scene | null>(null);
+    const scene = new THREE.Scene();
     const camera = ref<THREE.PerspectiveCamera | null>(null);
     const renderer = ref<THREE.WebGLRenderer | null>(null);
     const controls = ref<OrbitControls | null>(null);
@@ -60,8 +61,9 @@ export default defineComponent({
       if (!canvasContainer.value) return;
       
       // 创建场景
-      scene.value = new THREE.Scene();
-      scene.value.background = new THREE.Color(0xf8f9fa);
+      // scene.value = new THREE.Scene();
+  
+      scene.background = new THREE.Color(0xf8f9fa);
       
       // 创建相机
       camera.value = new THREE.PerspectiveCamera(
@@ -88,16 +90,16 @@ export default defineComponent({
       
       // 添加光源
       const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-      scene.value.add(ambientLight);
+      scene.add(ambientLight);
       
       const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
       directionalLight.position.set(100, 200, 300);
-      scene.value.add(directionalLight);
+      scene.add(directionalLight);
     };
     
     // 创建可视化
     const createVisualization = () => {
-      if (!scene.value) return;
+      if (!scene) return;
       
       // 解析网络数据
       networkDataParsed.value = parseNetwork(networkData as any);
@@ -111,7 +113,7 @@ export default defineComponent({
     
     // 创建节点
     const createNodes = (nodesData: NodeInfo[]) => {
-      if (!scene.value) return;
+      if (!scene) return;
       
       nodesData.forEach(nodeInfo => {
         const geometry = createLayerGeometry(nodeInfo.node.type);
@@ -130,7 +132,7 @@ export default defineComponent({
           mesh.rotation.z = Math.PI / 2;
         }
         
-        scene.value!.add(mesh);
+        scene!.add(mesh);
         nodes.value.push(mesh);
         
         // 添加标签
@@ -146,7 +148,7 @@ export default defineComponent({
     
     // 创建连接
     const createConnections = (nodesData: NodeInfo[]) => {
-      if (!scene.value) return;
+      if (!scene) return;
       
       const nodeMap = new Map<string, NodeInfo>();
       nodesData.forEach(node => nodeMap.set(node.id, node));
@@ -181,7 +183,7 @@ export default defineComponent({
       end: { x: number, y: number, z: number },
       color = 0x999999
     ) => {
-      if (!scene.value) return;
+      if (!scene) return;
       
       const geometry = new THREE.BufferGeometry().setFromPoints([
         new THREE.Vector3(start.x, start.y, start.z),
@@ -191,7 +193,7 @@ export default defineComponent({
       const material = new THREE.LineBasicMaterial({ color });
       const line = new THREE.Line(geometry, material);
       
-      scene.value.add(line);
+      scene.add(line);
       lines.value.push(line);
     };
     
@@ -203,8 +205,8 @@ export default defineComponent({
         controls.value.update();
       }
       
-      if (renderer.value && scene.value && camera.value) {
-        renderer.value.render(scene.value, camera.value);
+      if (renderer.value && scene && camera.value) {
+        renderer.value.render(scene, camera.value);
       }
     };
     

@@ -99,10 +99,21 @@ export default defineComponent({
     
     // 创建可视化
     const createVisualization = () => {
-      if (!scene) return;
+      try {
+        if (!scene) {
+          console.error('Scene not initialized');
+          return;
+        }
       
       // 解析网络数据
-      networkDataParsed.value = parseNetwork(networkData as any);
+        const rawData = networkData as any;
+        if (!rawData) {
+          console.error('Network data is missing');
+          return;
+        }
+        
+        const convertedData = convertRawLayer(rawData);
+        networkDataParsed.value = parseNetwork(convertedData);
       
       // 创建节点
       createNodes(networkDataParsed.value);

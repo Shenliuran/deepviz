@@ -1,5 +1,5 @@
 // parser.ts
-import type { Layer, NodeInfo } from '../types/nerual-network';
+import type { Layer, NodeInfo, RawLayerData, LayerType } from '../types/nerual-network';
 
 // 递归生成节点信息，包含位置和层级关系
 export function parseNetwork(layer: Layer, parentId?: string, depth = 0, siblingIndex = 0, parent?: Layer): NodeInfo[] {
@@ -35,4 +35,24 @@ export function parseNetwork(layer: Layer, parentId?: string, depth = 0, sibling
 // 辅助函数：计算兄弟节点数量
 function siblingCount(parent?: Layer): number {
   return parent?.children?.length || 0;
+}
+
+
+// 转换原始数据为 Layer 对象
+export function convertRawLayer(rawLayer: RawLayerData): Layer {
+  const layer: Layer = {
+    name: rawLayer.layer_name,
+    type: rawLayer.layer_type as LayerType,
+    params: rawLayer.parameters,
+    attributes: rawLayer.attributes,
+    is_residual_block: rawLayer.is_residual_block,
+    residual_connection: rawLayer.residual_connection
+  };
+
+  // 递归处理子节点
+  if (rawLayer.children && rawLayer.children.length > 0) {
+    layer.children = rawLayer.children.map(convertRawLayer);
+  }
+
+  return layer;
 }

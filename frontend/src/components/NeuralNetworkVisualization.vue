@@ -115,11 +115,14 @@ export default defineComponent({
         const convertedData = convertRawLayer(rawData);
         networkDataParsed.value = parseNetwork(convertedData);
       
-      // 创建节点
-      createNodes(networkDataParsed.value);
+        // 创建节点
+        createNodes(networkDataParsed.value);
       
-      // 创建连接线
-      createConnections(networkDataParsed.value);
+        // 创建连接线
+        createConnections(networkDataParsed.value);
+      } catch (error) {
+        console.error('Error creating visualization:', error);
+      }
     };
     
     // 创建节点

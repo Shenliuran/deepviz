@@ -5,6 +5,7 @@ export interface Layer {
   type: LayerType;        // 层类型（由框架定义）
   is_residual_block?: Boolean;
   params?: Record<string, any>;
+  attributes?: Record<string, any>;
   children?: Array<Layer>
   residual_connection?: ResidualConnection
 }
@@ -32,4 +33,16 @@ export interface NodeInfo {
 export interface LayerTypeInfo {
   shape: string;
   color: number;
+}
+
+
+// 添加原始数据接口
+export interface RawLayerData {
+  layer_name: string;
+  layer_type: string;
+  parameters?: Record<string, any>;
+  attributes?: Record<string, any>;
+  children?: RawLayerData[];
+  is_residual_block?: boolean;
+  residual_connection?: ResidualConnection;
 }

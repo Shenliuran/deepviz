@@ -15,8 +15,8 @@
 import { defineComponent, ref, onMounted, onBeforeUnmount, render } from 'vue';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { parseNetwork } from '../utils/parser';
-import networkData from './ordered_data.json';
+import { convertRawLayer, parseNetwork } from '../utils/parser';
+import networkData from '../../temp/ordered_data.json';
 import { createLayerGeometry, createLayerMaterial } from '../models/shapeFactory';
 import type { Layer, NodeInfo, LayerTypeInfo } from '../types/nerual-network';
 
@@ -36,12 +36,12 @@ export default defineComponent({
     // 状态
     // const scene = ref<THREE.Scene | null>(null);
     const scene = new THREE.Scene();
-    const camera = ref<THREE.PerspectiveCamera | null>(null);
-    const renderer = ref<THREE.WebGLRenderer | null>(null);
-    const controls = ref<OrbitControls | null>(null);
+    let camera: THREE.PerspectiveCamera | null = null;
+    let renderer: THREE.WebGLRenderer | null = null;
+    let controls: OrbitControls | null = null;
     const networkDataParsed = ref<NodeInfo[]>([]);
-    const nodes = ref<THREE.Mesh[]>([]);
-    const lines = ref<THREE.Line[]>([]);
+    let nodes: THREE.Mesh[] = [];
+    let lines: THREE.Line[] = [];
     
     // 层类型说明
     const layerTypes: Record<string, LayerTypeInfo> = {
@@ -66,26 +66,26 @@ export default defineComponent({
       scene.background = new THREE.Color(0xf8f9fa);
       
       // 创建相机
-      camera.value = new THREE.PerspectiveCamera(
+      camera = new THREE.PerspectiveCamera(
         75,
         canvasContainer.value.clientWidth / canvasContainer.value.clientHeight,
         0.1,
         10000
       );
-      camera.value.position.z = 1000;
+      camera.position.z = 1000;
       
       // 创建渲染器
-      renderer.value = new THREE.WebGLRenderer({ antialias: true });
-      renderer.value.setSize(
+      renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(
         canvasContainer.value.clientWidth,
         canvasContainer.value.clientHeight
       );
-      canvasContainer.value.appendChild(renderer.value.domElement);
+      canvasContainer.value.appendChild(renderer.domElement);
       
       // 添加控制器
-      if (camera.value && renderer.value) {
-        controls.value = new OrbitControls(camera.value, renderer.value.domElement);
-        controls.value.enableDamping = true;
+      if (camera && renderer) {
+        controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
       }
       
       // 添加光源
@@ -133,7 +133,7 @@ export default defineComponent({
         }
         
         scene!.add(mesh);
-        nodes.value.push(mesh);
+        nodes.push(mesh);
         
         // 添加标签
         addLabel(mesh, nodeInfo.node.name, nodeInfo.node.type);
@@ -194,32 +194,32 @@ export default defineComponent({
       const line = new THREE.Line(geometry, material);
       
       scene.add(line);
-      lines.value.push(line);
+      lines.push(line);
     };
     
     // 动画循环
     const animate = () => {
       requestAnimationFrame(animate);
       
-      if (controls.value) {
-        controls.value.update();
+      if (controls) {
+        controls.update();
       }
       
-      if (renderer.value && scene && camera.value) {
-        renderer.value.render(scene, camera.value);
+      if (renderer && scene && camera) {
+        renderer.render(scene, camera);
       }
     };
     
     // 处理窗口大小变化
     const handleResize = () => {
-      if (!canvasContainer.value || !camera.value || !renderer.value) return;
+      if (!canvasContainer.value || !camera || !renderer) return;
       
       const width = canvasContainer.value.clientWidth;
       const height = canvasContainer.value.clientHeight;
       
-      camera.value.aspect = width / height;
-      camera.value.updateProjectionMatrix();
-      renderer.value.setSize(width, height);
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+      renderer.setSize(width, height);
     };
     
     // 生命周期
@@ -233,8 +233,8 @@ export default defineComponent({
     onBeforeUnmount(() => {
       window.removeEventListener('resize', handleResize);
       // 清理资
-      if (renderer.value && canvasContainer.value) {
-        canvasContainer.value.removeChild(renderer.value.domElement);
+      if (renderer && canvasContainer.value) {
+        canvasContainer.value.removeChild(renderer.domElement);
       }
     });
     

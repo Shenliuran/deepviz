@@ -18,7 +18,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { convertRawLayer, parseNetwork } from '../utils/parser';
 import networkData from '../../temp/ordered_data.json';
 import { createLayerGeometry, createLayerMaterial } from '../models/shapeFactory';
-import type { Layer, NodeInfo, LayerTypeInfo } from '../types/nerual-network';
+import type { Layer, NodeInfo, LayerTypeInfo } from '../types/neural-network';
 
 export default defineComponent({
   name: 'NetworkVisualization',

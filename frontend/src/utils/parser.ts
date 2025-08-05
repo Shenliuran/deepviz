@@ -1,5 +1,5 @@
 // parser.ts
-import type { Layer, NodeInfo, RawLayerData, LayerType } from '../types/nerual-network';
+import type { Layer, NodeInfo, RawLayerData, LayerType } from '../types/neural-network';
 
 // 递归生成节点信息，包含位置和层级关系
 export function parseNetwork(layer: Layer, parentId?: string, depth = 0, siblingIndex = 0, parent?: Layer): NodeInfo[] {

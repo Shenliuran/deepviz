@@ -1,6 +1,7 @@
 export type LayerType = 'Conv2d' | 'BatchNorm2d' | 'ReLU' | 'MaxPool2d' | 'Identity'
 
 export interface Layer {
+  id: string;             // 层ID
   name: string;           // 层名称（自定义）
   type: LayerType;        // 层类型（由框架定义）
   is_residual_block?: Boolean;

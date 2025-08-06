@@ -39,8 +39,9 @@ function siblingCount(parent?: Layer): number {
 
 
 // 转换原始数据为 Layer 对象
-export function convertRawLayer(rawLayer: RawLayerData): Layer {
+export function convertRawLayer(rawLayer: RawLayerData, parentId?: string): Layer {
   const layer: Layer = {
+    id: parentId ? `${parentId}-${rawLayer.layer_name}` : rawLayer.layer_name,
     name: rawLayer.layer_name,
     type: rawLayer.layer_type as LayerType,
     params: rawLayer.parameters,
@@ -51,7 +52,7 @@ export function convertRawLayer(rawLayer: RawLayerData): Layer {
 
   // 递归处理子节点
   if (rawLayer.children && rawLayer.children.length > 0) {
-    layer.children = rawLayer.children.map(convertRawLayer);
+    layer.children = rawLayer.children.map(child => convertRawLayer(child, layer.id));
   }
 
   return layer;

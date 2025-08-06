@@ -57,3 +57,42 @@ export function convertRawLayer(rawLayer: RawLayerData, parentId?: string): Laye
 
   return layer;
 }
+
+// 构建网络连接关系
+export function buildNetworkConnections(rootLayer: Layer): Array<{source: string, target: string, isResidual?: boolean}> {
+  const connections: Array<{source: string, target: string, isResidual?: boolean}> = [];
+  // 处理同级串联连接
+  function processSequentialConnections(layers: Layer[], parentId: string = '') {
+    // 同级层之间串联
+    for (let i = 0; i < layers.length - 1; i++) {
+      connections.push({ 
+        source: layers[i].id, 
+        target: layers[i+1].id 
+      });
+    }
+    
+    // 处理每个层的子层和残差连接
+    layers.forEach(layer => {
+      // 处理残差连接
+      if (layer.is_residual_block && layer.residual_connection) {
+        connections.push({ 
+          source: parentId, 
+          target: layer.id, 
+          isResidual: true 
+        });
+      }
+      
+      // 递归处理子层
+      if (layer.children && layer.children.length > 0) {
+        processSequentialConnections(layer.children, layer.id);
+      }
+    });
+  }
+  
+  // 从根层开始处理
+  if (rootLayer.children) {
+    processSequentialConnections(rootLayer.children, rootLayer.id);
+  }
+  
+  return connections;
+}

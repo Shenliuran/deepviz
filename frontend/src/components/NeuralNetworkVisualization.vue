@@ -15,7 +15,7 @@
 import { defineComponent, ref, onMounted, onBeforeUnmount, render } from 'vue';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { convertRawLayer, parseNetwork } from '../utils/parser';
+import { buildNetworkConnections, convertRawLayer, parseNetwork } from '../utils/parser';
 import networkData from '../../temp/ordered_data.json';
 import { createLayerGeometry, createLayerMaterial } from '../models/shapeFactory';
 import type { Layer, NodeInfo, LayerTypeInfo } from '../types/neural-network';
@@ -119,7 +119,7 @@ export default defineComponent({
         createNodes(networkDataParsed.value);
       
         // 创建连接线
-        createConnections(networkDataParsed.value);
+        createConnections(convertedData);
       } catch (error) {
         console.error('Error creating visualization:', error);
       }
@@ -161,32 +161,30 @@ export default defineComponent({
     };
     
     // 创建连接
-    const createConnections = (nodesData: NodeInfo[]) => {
+    const createConnections = (rootLayer: Layer) => {
       if (!scene) return;
       
-      const nodeMap = new Map<string, NodeInfo>();
-      nodesData.forEach(node => nodeMap.set(node.id, node));
+      // 构建连接关系
+      const connections = buildNetworkConnections(rootLayer);
+      console.log('Network connections:', connections);
       
-      nodesData.forEach(nodeInfo => {
-        if (nodeInfo.parentId && nodeMap.has(nodeInfo.parentId)) {
-          const parent = nodeMap.get(nodeInfo.parentId)!;
-          createLine(
-            { x: parent.x, y: parent.y, z: parent.z },
-            { x: nodeInfo.x, y: nodeInfo.y, z: nodeInfo.z }
-          );
-        }
+      // 创建节点映射以便查找
+      const nodeMap = new Map<string, NodeInfo>();
+      networkDataParsed.value.forEach(node => nodeMap.set(node.id, node));
+      
+      // 创建连接线
+      connections.forEach(conn => {
+        const sourceNode = nodeMap.get(conn.source);
+        const targetNode = nodeMap.get(conn.target);
         
-        // 处理残差连接
-        if (nodeInfo.node.residual_connection) {
-          const sourceId = `${nodeInfo.node.residual_connection.input_source}-${nodeInfo.node.name}`;
-          if (nodeMap.has(sourceId)) {
-            const source = nodeMap.get(sourceId)!;
-            createLine(
-              { x: source.x, y: source.y, z: source.z },
-              { x: nodeInfo.x, y: nodeInfo.y, z: nodeInfo.z },
-              0xff0000 // 残差连接使用红色
-            );
-          }
+        if (sourceNode && targetNode) {
+          createLine(
+            { x: sourceNode.x, y: sourceNode.y, z: sourceNode.z },
+            { x: targetNode.x, y: targetNode.y, z: targetNode.z },
+            conn.isResidual ? 0xff0000 : 0x999999 // 残差连接使用红色，普通连接使用灰色
+          );
+        } else {
+          console.warn('Could not find nodes for connection:', conn);
         }
       });
     };

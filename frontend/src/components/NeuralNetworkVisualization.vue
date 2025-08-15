@@ -12,29 +12,21 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, onMounted, onBeforeUnmount, render } from 'vue';
+import { defineComponent, ref, onMounted, onBeforeUnmount } from 'vue';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { buildNetworkConnections, convertRawLayer, parseNetwork } from '../utils/parser';
 import networkData from '../../temp/ordered_data.json';
 import { createLayerGeometry, createLayerMaterial } from '../models/shapeFactory';
-import type { Layer, NodeInfo, LayerTypeInfo } from '../types/neural-network';
+import type { NodeInfo, LayerTypeInfo } from '../types/neural-network';
 
 export default defineComponent({
   name: 'NetworkVisualization',
   setup() {
     // refs
-    // const canvasContainer = ref<HTMLDivElement>(null);
     const canvasContainer = ref<HTMLDivElement>();
-    // 在NeuralNetworkVisualization.vue的<script>部分添加props定义
-    /* const props = defineProps<{
-      networkStructure?: number[];
-      weights?: number[][][];
-      activations?: number[][];
-    }>(); */
     
     // 状态
-    // const scene = ref<THREE.Scene | null>(null);
     const scene = new THREE.Scene();
     let camera: THREE.PerspectiveCamera | null = null;
     let renderer: THREE.WebGLRenderer | null = null;

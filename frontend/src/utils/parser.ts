@@ -1,30 +1,55 @@
 // parser.ts
 import type { Layer, NodeInfo, RawLayerData, LayerType } from '../types/neural-network';
 
+const X_STEP = 200;
+const Y_STEP = 200;
+const Z_STEP = 200;
 // 递归生成节点信息，包含位置和层级关系
-export function parseNetwork(layer: Layer, parentId?: string, depth = 0, siblingIndex = 0, parent?: Layer): NodeInfo[] {
-  const nodeId = parentId ? `${parentId}-${layer.name}` : layer.name;
+export function parseNetwork(layer: Layer, depth = 0, siblingIndex = 0, parentNode?: NodeInfo): NodeInfo[] {
   const nodes: NodeInfo[] = [];
   
   // 计算位置（可以根据需要调整布局算法）
-  const x = depth * 300;
-  const y = siblingIndex * 150 - (siblingCount(parent) * 75);
-  const z = 0;
-  
+  let x: number;
+  let y: number;
+  let z: number;
+  if (!parentNode) {
+    x = 0; y = 0; z = 0;
+  } else {
+    const parentX = parentNode.x;
+    const parentY = parentNode.y;
+    const parentZ = parentNode.z;
+    const stepMultiplier = siblingIndex + 1;
+    switch ((depth - 1) % 4) {
+      case 0:
+        x = parentX + stepMultiplier * X_STEP,
+        y = parentY;
+        z = parentZ;
+        break;
+      case 1:
+        x = parentX;
+        y = parentY + stepMultiplier * Y_STEP;
+        z = parentZ;
+        break;
+      case 2:
+        x = parentX;
+        y = parentY;
+        z = parentZ + stepMultiplier * Z_STEP;
+        break;
+      default:
+        x = parentX;
+        y = parentY - stepMultiplier * Y_STEP;
+        z = parentZ;
+        break;
+    }
+  }
+  const currentNodeInfo: NodeInfo = { id: layer.id, x, y, z, node: layer, parentId: parentNode?.parentId };
   // 添加当前节点
-  nodes.push({
-    id: nodeId,
-    x,
-    y,
-    z,
-    node: layer,
-    parentId
-  });
+  nodes.push(currentNodeInfo);
   
   // 递归处理子节点
   if (layer.children) {
     layer.children.forEach((child, index) => {
-      const childNodes = parseNetwork(child, nodeId, depth + 1, index, layer);
+      const childNodes = parseNetwork(child, depth + 1, index, currentNodeInfo);
       nodes.push(...childNodes);
     });
   }
@@ -85,12 +110,14 @@ export function buildNetworkConnections(rootLayer: Layer): Array<{source: string
       // 递归处理子层
       if (layer.children && layer.children.length > 0) {
         processSequentialConnections(layer.children, layer.id);
+        connections.push({ source: layer.id, target: layer.children[0].id })
       }
     });
   }
   
   // 从根层开始处理
   if (rootLayer.children) {
+    connections.push({ source: rootLayer.id, target: rootLayer.children[0].id })
     processSequentialConnections(rootLayer.children, rootLayer.id);
   }
   

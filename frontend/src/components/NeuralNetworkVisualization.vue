@@ -161,7 +161,7 @@ export default defineComponent({
         nodes.push(mesh);
         
         // 添加标签
-        addLabel(mesh, nodeInfo.node.name, nodeInfo.node.type);
+        addLabel(mesh, nodeInfo.node.name, nodeInfo.node.type, nodeInfo.node.id);
       });
     };
     

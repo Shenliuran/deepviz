@@ -155,9 +155,49 @@ export default defineComponent({
     };
     
     // 添加标签
-    const addLabel = (mesh: THREE.Mesh, name: string, type: string) => {
-      // 这里可以实现HTML标签或Canvas纹理标签
-      // 简化实现，实际项目中可以使用three-spritetext等库
+    const addLabel = (mesh: THREE.Mesh, name: string, type: string, id: string) => {
+      // 创建canvas元素用于绘制文本
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d');
+      if (!context) return;
+      
+      // 设置canvas大小和样式
+      canvas.width = 256;
+      canvas.height = 128;
+      context.fillStyle = '#ffffff';
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      context.font = '16px Arial';
+      context.fillStyle = '#000000';
+      context.textAlign = 'center';
+      context.textBaseline = 'middle';
+      
+      // 绘制文本
+      context.fillText(name, canvas.width / 2, canvas.height / 3);
+      // context.fillText(type, canvas.width / 2, 2 * canvas.height / 3);
+      context.fillText(id, canvas.width / 2, 2 * canvas.height / 3);
+      
+      // 创建纹理
+      const texture = new THREE.CanvasTexture(canvas);
+      
+      // 创建精灵材质
+      const material = new THREE.SpriteMaterial({ 
+        map: texture,
+        transparent: true 
+      });
+      
+      // 创建精灵并设置位置
+      const sprite = new THREE.Sprite(material);
+      sprite.position.set(
+        mesh.position.x + 80,
+        mesh.position.y,  // 在节点上方显示
+        mesh.position.z
+      );
+      
+      // 设置精灵大小
+      sprite.scale.set(100, 50, 1);
+      
+      // 将精灵添加到场景
+      scene.add(sprite);
     };
     
     // 创建连接

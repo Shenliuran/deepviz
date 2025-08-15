@@ -41,7 +41,7 @@ export default defineComponent({
     let controls: OrbitControls | null = null;
     const networkDataParsed = ref<NodeInfo[]>([]);
     let nodes: THREE.Mesh[] = [];
-    let lines: THREE.Line[] = [];
+    let lines: (THREE.Line | THREE.ArrowHelper)[] = [];
     
     // 层类型说明
     const layerTypes: Record<string, LayerTypeInfo> = {
@@ -229,35 +229,119 @@ export default defineComponent({
         const targetNode = nodeMap.get(conn.target);
         
         if (sourceNode && targetNode) {
-          createLine(
+          createEdge(
             { x: sourceNode.x, y: sourceNode.y, z: sourceNode.z },
             { x: targetNode.x, y: targetNode.y, z: targetNode.z },
-            conn.isResidual ? 0xff0000 : 0x999999 // 残差连接使用红色，普通连接使用灰色
+            conn.isResidual ? 0xff0000 : 0x999999, // 残差连接使用红色，普通连接使用灰色
+            conn?.isResidual ?? false, // 是否残差连接
           );
         } else {
           console.warn('Could not find nodes for connection:', conn);
         }
       });
     };
-    
-    // 创建连接线
-    const createLine = (
+
+    /**
+     * 创建神经网络层之间的连接线
+     * @param start 起始点坐标 {x, y, z}
+     * @param end 终止点坐标 {x, y, z}
+     * @param color 连接线的颜色
+     * @param isResidual 是否为残差连接
+     * @returns 无返回值
+     */
+    const createEdge = (
       start: { x: number, y: number, z: number },
       end: { x: number, y: number, z: number },
-      color = 0x999999
+      color: number,
+      isResidual: boolean
     ) => {
       if (!scene) return;
-      
-      const geometry = new THREE.BufferGeometry().setFromPoints([
-        new THREE.Vector3(start.x, start.y, start.z),
-        new THREE.Vector3(end.x, end.y, end.z)
-      ]);
-      
-      const material = new THREE.LineBasicMaterial({ color });
-      const line = new THREE.Line(geometry, material);
-      
-      scene.add(line);
-      lines.push(line);
+    
+      const startPoint = new THREE.Vector3(start.x, start.y, start.z);
+      const endPoint = new THREE.Vector3(end.x, end.y, end.z);
+    
+      // 如果是残差连接，使用曲线箭头
+      if (isResidual) {
+        // 计算中间点并偏移（形成 L 形）
+        const midX = (startPoint.x + endPoint.x) / 2;
+        const midY = (startPoint.y + endPoint.y) / 2;
+        const midZ = (startPoint.z + endPoint.z) / 2;
+    
+        // 偏移量，避免与普通连接重叠
+        const offsetX = 60; // 水平偏移
+    
+        // 创建三个点：起点 -> 中间偏移点 -> 终点
+        const points = [
+          startPoint,
+          new THREE.Vector3(midX + offsetX, midY, midZ),
+          endPoint
+        ];
+
+        // 使用 Catmull-Rom 曲线（需要至少 3 个点）
+        const curve = new THREE.CatmullRomCurve3(points);
+        curve.curveType = 'catmullrom';
+        curve.tension = 0.5;
+
+        // 采样曲线上的点
+        const geometry = new THREE.BufferGeometry();
+        const positions = [];
+        const sampleCount = 50;
+
+        for (let i = 0; i < sampleCount; i++) {
+          const point = curve.getPoint(i / (sampleCount - 1));
+          positions.push(point.x, point.y, point.z);
+        }
+
+        geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+        const material = new THREE.LineBasicMaterial({ color });
+        const line = new THREE.Line(geometry, material);
+    
+        scene.add(line);
+        lines.push(line);
+        
+        // 为曲线末端添加箭头指示方向
+        // 获取曲线末端的两个点以计算方向
+        const pointBeforeEnd = curve.getPoint((sampleCount - 2) / (sampleCount - 1));
+        const pointEnd = curve.getPoint(1);
+        
+        // 计算末端方向向量
+        const direction = new THREE.Vector3()
+          .subVectors(pointEnd, pointBeforeEnd)
+          .normalize();
+        
+        // 在曲线末端添加一个小箭头
+        const arrowSize = 20;
+        const arrowHelper = new THREE.ArrowHelper(
+          direction,
+          pointEnd,
+          arrowSize,
+          color,
+          arrowSize * 0.4,
+          arrowSize * 0.4
+        );
+        
+        scene.add(arrowHelper);
+        lines.push(arrowHelper);
+      } else {
+        // 普通连接：使用直线箭头
+        const direction = new THREE.Vector3().subVectors(endPoint, startPoint).normalize();
+        const length = startPoint.distanceTo(endPoint);
+        // 箭头头部大小限制在合理范围内
+        const headLength = Math.min(length * 0.4, 40);
+        const headWidth = Math.min(length * 0.4, 40);
+    
+        const arrow = new THREE.ArrowHelper(
+          direction,
+          startPoint,
+          length,
+          color,
+          headLength,
+          headWidth
+        );
+    
+        scene.add(arrow);
+        lines.push(arrow);
+      }
     };
     
     // 动画循环

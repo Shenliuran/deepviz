@@ -86,6 +86,17 @@ export default defineComponent({
       if (camera && renderer) {
         controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
+        controls.dampingFactor = 0.05; // 设置阻尼
+
+        // 启用平移功能
+        controls.enablePan = true;
+        
+        // 设置鼠标按钮功能
+        controls.mouseButtons = {
+          LEFT: THREE.MOUSE.ROTATE,   // 左键旋转
+          MIDDLE: THREE.MOUSE.DOLLY,  // 滚轮缩放
+          RIGHT: THREE.MOUSE.PAN      // 右键平移
+        };
       }
       
       // 添加光源

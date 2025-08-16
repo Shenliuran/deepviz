@@ -1,14 +1,30 @@
 export type LayerType = 'Conv2d' | 'BatchNorm2d' | 'ReLU' | 'MaxPool2d' | 'Identity'
 
+interface Parameters {
+  weight?: number[];
+  bias?: number[];
+}
+
+interface Attributes {
+  in_channels?: number;
+  out_channels?: number;
+  kernel_size?: number[] | number;
+  stride?: number[] | number;
+  padding?: number[] | number;
+  dilation?: number[];
+  groups?: number;
+  bias?: boolean;
+}
+
 export interface Layer {
   id: string;             // 层ID
   name: string;           // 层名称（自定义）
   type: LayerType;        // 层类型（由框架定义）
   is_residual_block?: Boolean;
-  params?: Record<string, any>;
-  attributes?: Record<string, any>;
+  params?: Parameters;
+  attributes?: Attributes;
   children?: Array<Layer>
-  residual_connection?: ResidualConnection
+  residual_connection?: ResidualConnection | null;
 }
 
 export interface NeuralNetworkModel {
@@ -19,7 +35,7 @@ export interface NeuralNetworkModel {
 export interface ResidualConnection {
   input_source: string;
   fusion_type: string;
-  adjust_layer: any | null; // 可以根据实际情况细化类型
+  adjust_layer: Layer | null; // 可以根据实际情况细化类型
 }
 
 export interface NodeInfo {
@@ -41,9 +57,9 @@ export interface LayerTypeInfo {
 export interface RawLayerData {
   layer_name: string;
   layer_type: string;
-  parameters?: Record<string, any>;
-  attributes?: Record<string, any>;
+  parameters?: Parameters;
+  attributes?: Attributes;
   children?: RawLayerData[];
-  is_residual_block?: boolean;
-  residual_connection?: ResidualConnection;
+  is_residual_block: boolean;
+  residual_connection: ResidualConnection | null;
 }

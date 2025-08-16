@@ -23,10 +23,11 @@ export function createLayerGeometry(
     case 'MaxPool2d':
       return new THREE.OctahedronGeometry(width/2);
       
-    case 'Sequential':
+    case 'Sequential': {
       const geometry = new THREE.BoxGeometry(width * 1.2, height * 1.2, depth * 1.2);
-      (geometry as any).type = 'SequentialGeometry'; // 扩展类型
+      (geometry as THREE.BufferGeometry & {type: string}).type = 'SequentialGeometry'; // 扩展类型
       return geometry;
+    }
       
     case 'BasicBlock':
       return new THREE.BoxGeometry(width, height, depth, 4, 4, 4);

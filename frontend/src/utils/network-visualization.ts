@@ -1,6 +1,6 @@
 // network-visualization.ts
 import * as THREE from 'three';
-import type { NodeInfo, Layer } from '../types/neural-network';
+import type { NodeInfo, Layer, RawLayerData } from '../types/neural-network';
 
 /**
  * 创建神经网络可视化
@@ -16,11 +16,11 @@ export function createGraph(
   scene: THREE.Scene,
   nodes: THREE.Mesh[],
   lines: (THREE.Line | THREE.ArrowHelper)[],
-  networkData: any,
+  networkData: RawLayerData,
   createLayerGeometry: (layerType: string) => THREE.BufferGeometry,
   createLayerMaterial: (layerType: string) => THREE.Material,
   buildNetworkConnections: (rootLayer: Layer) => Array<{source: string, target: string, isResidual?: boolean}>,
-  convertRawLayer: (rawLayer: any, parentId?: string) => Layer,
+  convertRawLayer: (rawLayer: RawLayerData, parentId?: string) => Layer,
   parseNetwork: (layer: Layer, depth?: number, siblingIndex?: number, parentNode?: NodeInfo) => NodeInfo[]
 ) {
   try {
@@ -30,7 +30,7 @@ export function createGraph(
     }
 
     // 解析网络数据
-    const rawData = networkData as any;
+    const rawData = networkData;
     if (!rawData) {
       console.error('Network data is missing');
       return;

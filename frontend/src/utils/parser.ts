@@ -104,14 +104,14 @@ export function buildNetworkConnections(rootLayer: Layer): Array<{source: string
       // 递归处理子层
       if (layer.children && layer.children.length > 0) {
         processSequentialConnections(layer.children, layer.id);
-        connections.push({ source: layer.id, target: layer.children[0].id })
+        connections.push({ source: layer.id, target: layer.children[0].id });
       }
     });
   }
   
   // 从根层开始处理
   if (rootLayer.children) {
-    connections.push({ source: rootLayer.id, target: rootLayer.children[0].id })
+    connections.push({ source: rootLayer.id, target: rootLayer.children[0].id });
     processSequentialConnections(rootLayer.children, rootLayer.id);
   }
   

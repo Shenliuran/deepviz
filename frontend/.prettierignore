@@ -1,0 +1,28 @@
+# 构建目录
+dist/
+build/
+
+# 依赖目录
+node_modules/
+
+# Vite
+.vite/
+
+# 日志文件
+*.log
+
+# 环境文件
+.env.*
+
+# 二进制文件
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.ico
+*.svg
+
+# 其他
+coverage/
+*.min.js
+temp/

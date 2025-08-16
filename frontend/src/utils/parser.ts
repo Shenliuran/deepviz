@@ -57,12 +57,6 @@ export function parseNetwork(layer: Layer, depth = 0, siblingIndex = 0, parentNo
   return nodes;
 }
 
-// 辅助函数：计算兄弟节点数量
-function siblingCount(parent?: Layer): number {
-  return parent?.children?.length || 0;
-}
-
-
 // 转换原始数据为 Layer 对象
 export function convertRawLayer(rawLayer: RawLayerData, parentId?: string): Layer {
   const layer: Layer = {

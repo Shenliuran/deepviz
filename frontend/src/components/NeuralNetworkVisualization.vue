@@ -20,6 +20,7 @@ import { initThree, handleResize } from '../utils/three-helpers';
 import { createGraph } from '../utils/network-visualization';
 import { createLayerGeometry, createLayerMaterial } from '../models/shapeFactory';
 import type { NodeInfo, LayerTypeInfo } from '../types/neural-network';
+import type { OrbitControls } from 'three/examples/jsm/Addons.js';
 
 export default defineComponent({
   name: 'NetworkVisualization',
@@ -31,7 +32,7 @@ export default defineComponent({
     const scene = new THREE.Scene();
     let camera: THREE.PerspectiveCamera | null = null;
     let renderer: THREE.WebGLRenderer | null = null;
-    let controls: any | null = null;
+    let controls: OrbitControls | null = null;
     const networkDataParsed = ref<NodeInfo[]>([]);
     let nodes: THREE.Mesh[] = [];
     let lines: (THREE.Line | THREE.ArrowHelper)[] = [];

@@ -1,0 +1,25 @@
+# 构建目录
+dist/
+build/
+
+# 依赖目录
+node_modules/
+
+# Vite
+.vite/
+
+# 日志文件
+*.log
+
+# 环境文件
+.env.*
+!.env.example
+
+# IDE
+.vscode/
+.idea/
+
+# 其他
+coverage/
+*.min.js
+temp/

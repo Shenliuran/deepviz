@@ -12,12 +12,12 @@ import type { NodeInfo, Layer, RawLayerData } from '../types/neural-network';
  * @param createLayerMaterial 材质创建函数
  * @param buildNetworkConnections 网络连接构建函数
  */
-export function createGraph(
+export async function createGraph(
   scene: THREE.Scene,
   nodes: THREE.Mesh[],
   lines: (THREE.Line | THREE.ArrowHelper)[],
   networkData: RawLayerData,
-  createLayerGeometry: (layerType: string) => THREE.BufferGeometry,
+  createLayerGeometry: (layerType: string) => THREE.BufferGeometry | Promise<THREE.BufferGeometry>,
   createLayerMaterial: (layerType: string) => THREE.Material,
   buildNetworkConnections: (rootLayer: Layer) => Array<{source: string, target: string, isResidual?: boolean}>,
   convertRawLayer: (rawLayer: RawLayerData, parentId?: string) => Layer,
@@ -40,7 +40,7 @@ export function createGraph(
     const networkDataParsed = parseNetwork(convertedData);
 
     // 创建节点
-    createNodes(scene, nodes, networkDataParsed, createLayerGeometry, createLayerMaterial);
+    await createNodes(scene, nodes, networkDataParsed, createLayerGeometry, createLayerMaterial);
 
     // 创建连接线
     createConnections(scene, lines, convertedData, networkDataParsed, buildNetworkConnections, createEdge);
@@ -223,28 +223,64 @@ function addLabel(
  * @param createLayerGeometry 几何体创建函数
  * @param createLayerMaterial 材质创建函数
  */
-export function createNodes(
+export async function createNodes(
   scene: THREE.Scene,
   nodes: THREE.Mesh[],
   nodesData: NodeInfo[],
-  createLayerGeometry: (layerType: string) => THREE.BufferGeometry,
+  createLayerGeometry: (layerType: string) => THREE.BufferGeometry | Promise<THREE.BufferGeometry>,
   createLayerMaterial: (layerType: string) => THREE.Material
 ) {
-  nodesData.forEach(nodeInfo => {
-    const geometry = createLayerGeometry(nodeInfo.node.type);
+  // 处理所有节点的几何体创建（可能包括异步加载）
+  const geometryPromises = nodesData.map(nodeInfo => {
+    const geometryResult = createLayerGeometry(nodeInfo.node.type);
+    return geometryResult instanceof Promise ? geometryResult : Promise.resolve(geometryResult);
+  });
+
+  // 等待所有几何体准备就绪
+  const geometries = await Promise.all(geometryPromises);
+
+  // 创建所有节点
+  nodesData.forEach((nodeInfo, index) => {
+    const geometry = geometries[index];
     const material = createLayerMaterial(nodeInfo.node.type);
     
-    const mesh = new THREE.Mesh(geometry, material);
+    let mesh: THREE.Mesh;
+    let model: THREE.Object3D | null = null;
     
-    // 设置位置
+    // 检查是否是包含3D模型的特殊几何体
+    if ((geometry as any).isObject3D && (geometry as any).model) {
+      model = (geometry as any).model;
+      
+      // 将模型添加到场景中，并设置其位置
+      if (model) {
+        scene.add(model);
+        model.position.set(nodeInfo.x, nodeInfo.y, nodeInfo.z);
+      }
+      
+      // 创建一个透明的占位网格
+      mesh = new THREE.Mesh(
+        new THREE.BoxGeometry(1, 1, 1),
+        new THREE.MeshBasicMaterial({ 
+          visible: false // 使占位网格不可见
+        })
+      );
+      
+      // 将模型引用保存到网格的userData中
+      mesh.userData.model = model;
+    } else {
+      mesh = new THREE.Mesh(geometry, material);
+    }
+    
+    // 设置网格位置
     mesh.position.set(nodeInfo.x, nodeInfo.y, nodeInfo.z);
-    mesh.userData.id = nodeInfo.id;
-    mesh.userData.type = nodeInfo.node.type;
-    mesh.userData.layer = nodeInfo.node;
     
     // 调整某些形状的旋转
     if (['Conv2d', 'BatchNorm2d', 'ReLU'].includes(nodeInfo.node.type)) {
       mesh.rotation.z = Math.PI / 2;
+      // 如果有模型，也旋转模型
+      if (model) {
+        model.rotation.z = Math.PI / 2;
+      }
     }
     
     scene.add(mesh);

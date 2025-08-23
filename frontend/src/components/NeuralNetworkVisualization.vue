@@ -40,7 +40,7 @@ export default defineComponent({
     // 层类型说明
     const layerTypes: Record<string, LayerTypeInfo> = {
       'ResNet': { shape: '大型立方体', color: 0x2196F3 },
-      'Conv2d': { shape: '圆柱体', color: 0x42A5F5 },
+      'Conv2d': { shape: '椭球体', color: 0x42A5F5 },
       'BatchNorm2d': { shape: '圆台', color: 0x66BB6A },
       'ReLU': { shape: '锥体', color: 0xFFCA28 },
       'MaxPool2d': { shape: '八面体', color: 0x26A69A },
@@ -61,10 +61,10 @@ export default defineComponent({
     };
     
     // 创建可视化
-    const createVisualization = () => {
+    const createVisualization = async () => {
       if (!canvasContainer.value) return;
       
-      const result = createGraph(
+      const result = await createGraph(
         scene,
         nodes,
         lines,
@@ -101,9 +101,9 @@ export default defineComponent({
     };
     
     // 生命周期
-    onMounted(() => {
+    onMounted(async () => {
       initThreeJS();
-      createVisualization();
+      await createVisualization();
       animate();
       window.addEventListener('resize', onHandleResize);
     });

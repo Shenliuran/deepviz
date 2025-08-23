@@ -1,0 +1,42 @@
+# 前端
+frontend/node_modules/
+frontend/*lock*
+frontend/.vite
+frontend/src/services/*
+frontend/nginx.conf
+frontend/src/components/NetworkConfigurator.vue
+frontend/src/models/mesh/*
+
+
+# 后端
+backend/.venv/
+backend/out/
+backend/temp/
+backend/.ruff_cache/
+backend/.pytest_cache/
+backend/*uv.lock
+backend/*/__pycache__
+backend/*/*/__pycache__
+backend/src/models/
+backend/*.py
+backend/src/services/*
+backend/src/*.egg-info/*
+
+# IDE配置
+.vscode/
+.idea/
+
+# 日志文件
+*.log
+
+# Docker相关
+.dockerignore
+docker*
+frontend/docker/*
+backend/docker/*
+temp*
+
+
+*.drawio
+
+structure.md

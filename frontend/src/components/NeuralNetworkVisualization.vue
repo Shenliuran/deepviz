@@ -1,6 +1,42 @@
 <template>
   <div class="network-visualization">
     <div ref="canvasContainer" class="canvas-container"></div>
+    <div class="controls">
+      <div class="control-group">
+        <label>X步长: {{ steps.xStep }}</label>
+        <input 
+          type="range" 
+          min="50" 
+          max="500" 
+          v-model.number="steps.xStep" 
+          @input="updateSteps" 
+          class="slider"
+        >
+      </div>
+      <div class="control-group">
+        <label>Y步长: {{ steps.yStep }}</label>
+        <input 
+          type="range" 
+          min="50" 
+          max="500" 
+          v-model.number="steps.yStep" 
+          @input="updateSteps" 
+          class="slider"
+        >
+      </div>
+      <div class="control-group">
+        <label>Z步长: {{ steps.zStep }}</label>
+        <input 
+          type="range" 
+          min="50" 
+          max="500" 
+          v-model.number="steps.zStep" 
+          @input="updateSteps" 
+          class="slider"
+        >
+      </div>
+      <button @click="resetView" class="reset-button">重置视角</button>
+    </div>
     <div class="legend">
       <h3>层类型说明</h3>
       <div v-for="(item, key) in layerTypes" :key="key" class="legend-item">
@@ -12,13 +48,13 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, onMounted, onBeforeUnmount } from 'vue';
+import { defineComponent, ref, reactive, onMounted, onBeforeUnmount } from 'vue';
 import * as THREE from 'three';
-import { buildNetworkConnections, convertRawLayer, parseNetwork } from '../utils/parser';
+import { NetworkParser } from '../utils/parser';
 import networkData from '../../temp/ordered_data.json';
 import { initThree, handleResize } from '../utils/three-helpers';
-import { createGraph } from '../utils/network-visualization';
-import { createLayerGeometry, createLayerMaterial } from '../models/shapeFactory';
+import { NetworkVisualizer } from '../utils/network-visualization';
+import { ShapeFactory } from '../models/shapeFactory';
 import type { NodeInfo, LayerTypeInfo } from '../types/neural-network';
 import type { OrbitControls } from 'three/examples/jsm/Addons.js';
 
@@ -34,8 +70,16 @@ export default defineComponent({
     let renderer: THREE.WebGLRenderer | null = null;
     let controls: OrbitControls | null = null;
     const networkDataParsed = ref<NodeInfo[]>([]);
-    let nodes: THREE.Mesh[] = [];
-    let lines: (THREE.Line | THREE.ArrowHelper)[] = [];
+    let networkVisualizer: NetworkVisualizer | null = null;
+    const shapeFactory = new ShapeFactory();
+    const networkParser = new NetworkParser();
+    
+    // 步长控制
+    const steps = reactive({
+      xStep: 200,
+      yStep: 200,
+      zStep: 200
+    });
     
     // 层类型说明
     const layerTypes: Record<string, LayerTypeInfo> = {
@@ -60,20 +104,58 @@ export default defineComponent({
       controls = result.controls;
     };
     
+    // 更新步长参数
+    const updateSteps = () => {
+      networkParser.setSteps(steps.xStep, steps.yStep, steps.zStep);
+      // 重新创建可视化
+      recreateVisualization();
+    };
+    
+    // 重置视角
+    const resetView = () => {
+      if (camera && controls) {
+        camera.position.set(0, 0, 1000);
+        controls.reset();
+      }
+    };
+    
+    // 重新创建可视化
+    const recreateVisualization = () => {
+      if (!canvasContainer.value) return;
+      
+      // 清理现有可视化
+      if (networkVisualizer) {
+        networkVisualizer.clear();
+      }
+      
+      // 创建新的可视化器实例
+      networkVisualizer = new NetworkVisualizer(scene);
+      
+      const result = networkVisualizer.createGraph(
+        networkData,
+        shapeFactory,
+        networkParser
+      );
+      
+      if (result) {
+        networkDataParsed.value = result;
+      }
+    };
+    
     // 创建可视化
     const createVisualization = () => {
       if (!canvasContainer.value) return;
       
-      const result = createGraph(
-        scene,
-        nodes,
-        lines,
+      // 设置初始步长
+      networkParser.setSteps(steps.xStep, steps.yStep, steps.zStep);
+      
+      // 创建网络可视化器实例
+      networkVisualizer = new NetworkVisualizer(scene);
+      
+      const result = networkVisualizer.createGraph(
         networkData,
-        createLayerGeometry,
-        createLayerMaterial,
-        buildNetworkConnections,
-        convertRawLayer,
-        parseNetwork
+        shapeFactory,
+        networkParser
       );
       
       if (result) {
@@ -111,6 +193,9 @@ export default defineComponent({
     onBeforeUnmount(() => {
       window.removeEventListener('resize', onHandleResize);
       // 清理资源
+      if (networkVisualizer) {
+        networkVisualizer.clear();
+      }
       if (renderer && canvasContainer.value) {
         canvasContainer.value.removeChild(renderer.domElement);
       }
@@ -118,7 +203,10 @@ export default defineComponent({
     
     return {
       canvasContainer,
-      layerTypes
+      layerTypes,
+      steps,
+      updateSteps,
+      resetView
     };
   }
 });
@@ -129,6 +217,47 @@ export default defineComponent({
   width: 100%;
   height: 800px;
   position: relative;
+}
+
+.controls {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 15px;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  z-index: 100;
+  max-width: 250px;
+}
+
+.control-group {
+  margin-bottom: 10px;
+}
+
+.control-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 14px;
+  color: #333;
+}
+
+.slider {
+  width: 100%;
+}
+
+.reset-button {
+  background-color: #42b983;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.reset-button:hover {
+  background-color: #359c6d;
 }
 
 .legend {

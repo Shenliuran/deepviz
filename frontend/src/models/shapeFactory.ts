@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
+import { ModelManager } from './3d-model-manager';
 
 interface CustomBufferGeometry extends THREE.BufferGeometry {
   isObject3D?: boolean;
@@ -11,11 +11,8 @@ interface CustomBufferGeometry extends THREE.BufferGeometry {
  */
 export class ShapeFactory {
   
-  // 创建一个全局的loader实例和缓存
-  private _objLoader = new OBJLoader();
-  private _conv2dModel: THREE.Group | null = null;
-  private _isModelLoading = false;
-  private _modelLoadCallbacks: Array<(model: THREE.Group) => void> = [];
+  // 创建模型管理器实例
+  private _modelManager = new ModelManager();
 
 
   // 默认尺寸配置
@@ -90,68 +87,29 @@ export class ShapeFactory {
   }
 
   /**
-   * 异步加载Conv2d模型
-   * @returns Promise<THREE.Group> 返回一个包含3D模型的Group对象
+   * 创建基于3D模型的几何体
+   * @param modelName 模型名称
+   * @param size 尺寸对象
+   * @returns Promise<THREE.BufferGeometry>
    */
-  private loadConv2dModel(): Promise<THREE.Group> {
-    return new Promise((resolve, reject) => {
-      // 如果模型已经加载完成，直接返回
-      if (this._conv2dModel) {
-        resolve(this._conv2dModel);
-        return;
-      }
-  
-      // 如果正在加载中，将回调加入队列
-      if (this._isModelLoading) {
-        this._modelLoadCallbacks.push(resolve);
-        return;
-      }
-  
-      // 开始加载模型
-      this._isModelLoading = true;
-      this._modelLoadCallbacks.push(resolve);
-  
-      this._objLoader.load(
-        '/src/models/mesh/model_box.obj',
-        (object) => {
-          // 计算模型的包围盒
-          const box = new THREE.Box3().setFromObject(object);
-          
-          // 获得模型尺寸
-          const modelSize = new THREE.Vector3();
-          box.getSize(modelSize);
-          
-          // 获得模型中心点
-          const center = new THREE.Vector3();
-          box.getCenter(center);
-  
-          // 将模型中心移到原点
-          object.position.sub(center);
-  
-          // 根据模型原始尺寸进行标准化缩放
-          /* const maxDimension = Math.max(modelSize.x, modelSize.y, modelSize.z);
-          if (maxDimension > 0) {
-            const scale = 1 / maxDimension;
-            object.scale.set(scale, scale, scale);
-          } */
-  
-          this._conv2dModel = object;
-          this._isModelLoading = false;
-          
-          // 执行所有回调
-          this._modelLoadCallbacks.forEach(callback => callback(object));
-          this._modelLoadCallbacks = [];
-        },
-        undefined,
-        (error) => {
-          this._isModelLoading = false;
-          this._modelLoadCallbacks = [];
-          console.error('Error loading Conv2d model:', error);
-          reject(error);
-        }
-      );
-    });
+  private async createLayerGeometryByName(modelName: string, size: { width: number; height: number; depth: number }): Promise<THREE.BufferGeometry> {
+    const { width, height, depth } = size;
+    
+    try {
+      const model = await this._modelManager.loadModelByName(modelName);
+      // 克隆模型并调整大小
+      const clonedModel = model.clone();
+
+      // 实际上我们会使用模型对象而不是几何体
+      const geometry = new THREE.BufferGeometry() as CustomBufferGeometry;
+      geometry.isObject3D = true;
+      geometry.model = clonedModel;
+      return geometry;
+    } catch {
+      return new THREE.CylinderGeometry(width / 2, height / 2, depth, 32);
+    }
   }
+  
   /**
    * 创建层几何体
    * @param layerType 层类型
@@ -170,32 +128,8 @@ export class ShapeFactory {
         
       case 'Conv2d':
         // 尝试加载自定义OBJ模型
-        return this.loadConv2dModel().then(model => {
-          // 克隆模型并调整大小
-          const clonedModel = model.clone();
-          
-          // 调整模型大小以适配指定尺寸    
-          const bbox = new THREE.Box3().setFromObject(clonedModel);
-          const modelSize = bbox.getSize(new THREE.Vector3());
-          
-          // 计算缩放因子以适配指定尺寸
-          if (modelSize.x > 0 && modelSize.y > 0 && modelSize.z > 0) {
-            const scaleX = width / modelSize.x;
-            const scaleY = height / modelSize.y;
-            const scaleZ = depth / modelSize.z;
-            clonedModel.scale.set(scaleX, scaleY, scaleZ);
-          }
-          
-          // 实际上我们会使用模型对象而不是几何体
-          const geometry = new THREE.BufferGeometry() as CustomBufferGeometry;
-          geometry.isObject3D = true;
-          geometry.model = clonedModel;
-          return geometry;
-        }).catch(() => {
-          // 如果加载失败，回退到圆柱体
-          return new THREE.CylinderGeometry(width/2, width/2, height, 32);
-        });
-        
+        return this.createLayerGeometryByName('Conv2d', size);
+
       case 'BatchNorm2d':
         return new THREE.CylinderGeometry(width/3, width/2, height, 32);
         

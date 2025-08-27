@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import type { NodeInfo, Layer, RawLayerData } from '../types/neural-network';
-import type { ShapeFactory } from '../models/shapeFactory';
+import type { ShapeFactory, CustomBufferGeometry } from '../models/shapeFactory';
 import type { NetworkParser } from '../utils/parser';
 
 /**
@@ -235,14 +235,14 @@ export class NetworkVisualizer {
     createLayerMaterial: (layerType: string) => THREE.Material
   ) {
     for (const nodeInfo of nodesData) { 
-      const geometry = await createLayerGeometry(nodeInfo.node.type);
+      const geometry = await createLayerGeometry(nodeInfo.node.type) as CustomBufferGeometry;
       const material = createLayerMaterial(nodeInfo.node.type);
       let mesh: THREE.Mesh | THREE.Group;
       
       // 检查是否是自定义OBJ模型
-      if ('isObject3D' in geometry && (geometry as any).isObject3D && (geometry as any).model) {
+      if ('isObject3D' in geometry && geometry.isObject3D && geometry.model) {
         // 对于自定义OBJ模型，直接使用模型对象
-        mesh = (geometry as any).model;
+        mesh = geometry.model;
         mesh.userData = {
           id: nodeInfo.id,
           type: nodeInfo.node.type,

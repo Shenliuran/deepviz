@@ -198,6 +198,17 @@ export default defineComponent({
       }
       if (renderer && canvasContainer.value) {
         canvasContainer.value.removeChild(renderer.domElement);
+        renderer.dispose();
+      }
+      
+      // 清理相机资源
+      if (camera) {
+        camera = null;
+      }
+      // 清理控制器资源
+      if (controls) {
+        controls.dispose();
+        controls = null;
       }
     });
     

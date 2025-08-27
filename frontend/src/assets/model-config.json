@@ -1,0 +1,8 @@
+{
+  "models": {
+    "Conv2d": "/src/assets/mesh/conv2d.glb",
+    "MaxPool2d": "/src/assets/mesh/maxpool2d.glb",
+    "BatchNorm2d": "/src/assets/mesh/batchnorm2d.glb"
+  },
+  "defaultModelsPath": "@/assets/mesh/"
+}

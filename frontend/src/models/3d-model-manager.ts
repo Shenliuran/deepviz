@@ -1,10 +1,9 @@
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import type * as THREE from 'three';
 
-// 导入模型文件
-import sceneConv2dUrl from '@/assets/mesh/conv2d.glb?url';
-import sceneMaxPool2dUrl from '@/assets/mesh/maxpool2d.glb?url';
-import sceneBatchNorm2dUrl from '@/assets/mesh/batchnorm2d.glb?url';
+
+// 导入模型配置文件
+import modelConfig from '@/assets/model-config.json';
 
 /**
  * 模型加载管理器
@@ -23,12 +22,12 @@ export class ModelManager {
   }> = new Map();
   
   // 模型路径映射
-  private _modelPathMap: Record<string, string> = {
-    'Conv2d': sceneConv2dUrl,
-    'MaxPool2d': sceneMaxPool2dUrl,
-    'BatchNorm2d': sceneBatchNorm2dUrl
-  };
-
+  private _modelPathMap: Record<string, string>;
+  
+  constructor() {
+    // 初始化模型路径映射
+    this._modelPathMap = modelConfig.models || {};
+  }
   /**
    * 加载指定名称的模型
    * @param modelName 模型名称

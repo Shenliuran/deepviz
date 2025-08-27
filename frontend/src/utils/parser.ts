@@ -51,9 +51,7 @@ export class NetworkParser {
     if (!parentNode) {
       x = 0; y = 0; z = 0;
     } else {
-      const parentX = parentNode.x;
-      const parentY = parentNode.y;
-      const parentZ = parentNode.z;
+      const { x: parentX, y: parentY, z: parentZ } = parentNode;
       const stepMultiplier = siblingIndex + 1;
       switch ((depth - 1) % 4) {
         case 0:

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { ModelManager } from './3d-model-manager';
 
-interface CustomBufferGeometry extends THREE.BufferGeometry {
+export interface CustomBufferGeometry extends THREE.BufferGeometry {
   isObject3D?: boolean;
   model?: THREE.Group
 }

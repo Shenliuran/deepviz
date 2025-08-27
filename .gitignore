@@ -5,7 +5,6 @@ frontend/.vite
 frontend/src/services/*
 frontend/nginx.conf
 frontend/src/components/NetworkConfigurator.vue
-frontend/src/models/mesh/*
 
 
 # 后端

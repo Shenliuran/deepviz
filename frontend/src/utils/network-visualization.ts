@@ -251,9 +251,11 @@ export class NetworkVisualizer {
       } else {
         // 对于普通几何体，创建Mesh对象
         mesh = new THREE.Mesh(geometry, material);
-        mesh.userData.id = nodeInfo.id;
-        mesh.userData.type = nodeInfo.node.type;
-        mesh.userData.layer = nodeInfo.node;
+        mesh.userData = {
+          id: nodeInfo.id,
+          type: nodeInfo.node.type,
+          layer: nodeInfo.node
+        };
       }
       
       // 设置位置

@@ -3,6 +3,8 @@ import type * as THREE from 'three';
 
 // 导入模型文件
 import sceneConv2dUrl from '@/assets/mesh/conv2d.glb?url';
+import sceneMaxPool2dUrl from '@/assets/mesh/maxpool2d.glb?url';
+import sceneBatchNorm2dUrl from '@/assets/mesh/batchnorm2d.glb?url';
 
 /**
  * 模型加载管理器
@@ -22,7 +24,9 @@ export class ModelManager {
   
   // 模型路径映射
   private _modelPathMap: Record<string, string> = {
-    'Conv2d': sceneConv2dUrl
+    'Conv2d': sceneConv2dUrl,
+    'MaxPool2d': sceneMaxPool2dUrl,
+    'BatchNorm2d': sceneBatchNorm2dUrl
   };
 
   /**

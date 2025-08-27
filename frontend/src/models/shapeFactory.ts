@@ -131,13 +131,13 @@ export class ShapeFactory {
         return this.createLayerGeometryByName('Conv2d', size);
 
       case 'BatchNorm2d':
-        return new THREE.CylinderGeometry(width/3, width/2, height, 32);
+        return this.createLayerGeometryByName('BatchNorm2d', size);
         
       case 'ReLU':
         return new THREE.ConeGeometry(width/2, height, 32);
         
       case 'MaxPool2d':
-        return new THREE.OctahedronGeometry(width/2);
+        return this.createLayerGeometryByName('MaxPool2d', size);
         
       case 'Sequential': {
         const geometry = new THREE.BoxGeometry(width * 1.2, height * 1.2, depth * 1.2);

@@ -331,11 +331,8 @@ export class NetworkVisualizer {
         node.geometry.dispose();
       }
       if (node.material) {
-        if (Array.isArray(node.material)) {
-          node.material.forEach(material => material.dispose());
-        } else {
-          node.material.dispose();
-        }
+        const materials = Array.isArray(node.material) ? node.material : [node.material];
+        materials.forEach(material => material.dispose());
       }
     });
     this._nodes = [];
@@ -347,11 +344,8 @@ export class NetworkVisualizer {
         line.geometry.dispose();
       }
       if (line instanceof THREE.Line && line.material) {
-        if (Array.isArray(line.material)) {
-          line.material.forEach(material => material.dispose());
-        } else {
-          line.material.dispose();
-        }
+        const materials = Array.isArray(line.material) ? line.material : [line.material];
+        materials.forEach(material => material.dispose());
       }
       if (line instanceof THREE.ArrowHelper) {
         line.dispose();

@@ -234,6 +234,12 @@ export class NetworkVisualizer {
     createLayerGeometry: (layerType: string) => THREE.BufferGeometry | Promise<THREE.BufferGeometry>,
     createLayerMaterial: (layerType: string) => THREE.Material
   ) {
+    // 创建节点位置映射以便查找
+    const nodePositionMap = new Map<string, {x: number, y: number, z: number}>();
+    nodesData.forEach(node => {
+      nodePositionMap.set(node.id, {x: node.x, y: node.y, z: node.z});
+    });
+
     for (const nodeInfo of nodesData) { 
       const geometry = await createLayerGeometry(nodeInfo.node.type) as CustomBufferGeometry;
       const material = createLayerMaterial(nodeInfo.node.type);
@@ -261,16 +267,50 @@ export class NetworkVisualizer {
       // 设置位置
       mesh.position.set(nodeInfo.x, nodeInfo.y, nodeInfo.z);
 
-      // 调整某些形状的旋转
-      if (['Conv2d', 'BatchNorm2d', 'ReLU'].includes(nodeInfo.node.type)) {
-        mesh.rotation.z = Math.PI / 2;
-      }
-      
       this._scene.add(mesh);
       this._nodes.push(mesh as THREE.Mesh);
       
       // 添加标签
       this.addLabel(mesh as THREE.Mesh, nodeInfo.node.name, nodeInfo.node.type, nodeInfo.node.id);
+    }
+
+    // 调整每个节点的朝向，使其z轴与到下一个节点的连线方向一致
+    this.alignNodesWithConnections(nodesData);
+  }
+
+  /**
+   * 调整节点朝向，使其z轴与到下一个节点的连线方向一致
+   * @param nodesData 节点数据
+   */
+  private alignNodesWithConnections(nodesData: NodeInfo[]): void {
+    // 创建节点位置映射以便查找
+    const nodePositionMap = new Map<string, THREE.Vector3>();
+    nodesData.forEach(node => {
+      nodePositionMap.set(node.id, new THREE.Vector3(node.x, node.y, node.z));
+    });
+
+    // 遍历所有节点，调整朝向
+    for (let i = 0; i < this._nodes.length - 1; i++) {
+      const currentNode = this._nodes[i];
+      const nextNode = this._nodes[i + 1];
+      
+      // 获取节点位置
+      const currentPosition = new THREE.Vector3().copy(currentNode.position);
+      const nextPosition = new THREE.Vector3().copy(nextNode.position);
+      
+      // 计算从当前节点到下一个节点的方向向量
+      const direction = new THREE.Vector3().subVectors(nextPosition, currentPosition).normalize();
+      
+      // 如果方向向量有效，则调整当前节点的朝向
+      if (direction.length() > 0) {
+        // 创建一个临时的Object3D来计算目标旋转
+        const target = new THREE.Object3D();
+        target.position.copy(currentPosition);
+        target.lookAt(nextPosition);
+        
+        // 应用旋转到当前节点
+        currentNode.quaternion.copy(target.quaternion);
+      }
     }
   }
 

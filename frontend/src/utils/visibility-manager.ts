@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import type { NodeInfo } from '../types/neural-network';
+import type { Layer, NodeInfo } from '../types/neural-network';
 import type { NetworkVisualizer } from './network-visualization';
 
 /**
@@ -29,10 +29,10 @@ export class VisibilityManager {
     }
     
     // 获取所有子节点ID（包括嵌套的子节点）
-    const getAllChildrenIds = (layer: any): string[] => {
+    const getAllChildrenIds = (layer: Layer): string[] => {
       let ids: string[] = [];
       if (layer.children && layer.children.length > 0) {
-        layer.children.forEach((child: any) => {
+        layer.children.forEach((child: Layer) => {
           ids.push(child.id);
           ids = ids.concat(getAllChildrenIds(child));
         });

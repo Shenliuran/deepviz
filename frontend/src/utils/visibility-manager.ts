@@ -2,6 +2,28 @@ import * as THREE from 'three';
 import type { Layer, NodeInfo } from '../types/neural-network';
 import type { NetworkVisualizer } from './network-visualization';
 
+// 定义连线的用户数据类型
+interface LineUserData {
+  sourceId?: string;
+  targetId?: string;
+  isResidual?: boolean;
+  id?: string;
+  type?: string;
+  layer?: Layer; // 根据实际需要可以进一步细化
+  parentId?: string;
+}
+
+// 定义扩展连线类型
+interface ExtendedLine extends THREE.Line {
+  userData: LineUserData;
+}
+
+interface ExtendedArrowHelper extends THREE.ArrowHelper {
+  userData: LineUserData;
+}
+
+type NetworkLine = ExtendedLine | ExtendedArrowHelper;
+
 /**
  * 可见性管理器类
  * 负责管理网络可视化中节点、标签和连线的可见性
@@ -69,10 +91,10 @@ export class VisibilityManager {
     // 更新连线可见性
     lines.forEach(line => {
       // 检查线段是否连接到任何子节点
-      const lineUserData = (line as any).userData;
+      const lineUserData = (line as NetworkLine).userData;
       if (lineUserData && 
-          (allChildrenIds.includes(lineUserData.sourceId) || 
-          allChildrenIds.includes(lineUserData.targetId))) {
+          (lineUserData.sourceId && allChildrenIds.includes(lineUserData.sourceId) || 
+          lineUserData.targetId && allChildrenIds.includes(lineUserData.targetId))) {
         line.visible = shouldShow;
       }
     });

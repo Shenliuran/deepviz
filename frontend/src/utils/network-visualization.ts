@@ -3,13 +3,41 @@ import type { NodeInfo, Layer, RawLayerData } from '../types/neural-network';
 import type { ShapeFactory, CustomBufferGeometry } from '../models/shapeFactory';
 import type { NetworkParser } from '../utils/parser';
 
+// 定义 THREE 对象的 userData 类型
+interface ThreeObjectUserData {
+  sourceId?: string;
+  targetId?: string;
+  isResidual?: boolean;
+  id?: string;
+  type?: string;
+  layer?: Layer;
+  parentId?: string;
+}
+
+// 扩展 THREE 对象类型以包含 userData
+interface ExtendedObject3D extends THREE.Object3D {
+  userData: ThreeObjectUserData;
+}
+
+interface ExtendedLine extends THREE.Line {
+  userData: ThreeObjectUserData;
+}
+
+interface ExtendedArrowHelper extends THREE.ArrowHelper {
+  userData: ThreeObjectUserData;
+}
+
+interface ExtendedMesh extends THREE.Mesh {
+  userData: ThreeObjectUserData;
+}
+
 /**
  * 神经网络可视化类
  */
 export class NetworkVisualizer {
   private _scene: THREE.Scene;
-  private _nodes: THREE.Mesh[] = [];
-  private _lines: (THREE.Line | THREE.ArrowHelper)[] = [];
+  private _nodes: ExtendedMesh[] = [];
+  private _lines: (ExtendedLine | ExtendedArrowHelper)[] = [];
 
   constructor(scene: THREE.Scene) {
     this._scene = scene;
@@ -73,7 +101,7 @@ export class NetworkVisualizer {
    * @returns 无返回值
    */
   private createEdge(
-    lines: (THREE.Line | THREE.ArrowHelper)[],
+    lines: (ExtendedLine | ExtendedArrowHelper)[],
     start: { x: number, y: number, z: number, id?: string },
     end: { x: number, y: number, z: number, id?: string },
     color: number,
@@ -116,10 +144,10 @@ export class NetworkVisualizer {
 
       geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
       const material = new THREE.LineBasicMaterial({ color });
-      const line = new THREE.Line(geometry, material);
+      const line = new THREE.Line(geometry, material) as ExtendedLine;
 
       // 添加用户数据以标识源和目标节点
-      (line as any).userData = {
+      line.userData = {
         sourceId: start.id,
         targetId: end.id,
         isResidual: isResidual
@@ -147,10 +175,10 @@ export class NetworkVisualizer {
         color,
         arrowSize * 0.4,
         arrowSize * 0.4
-      );
+      ) as ExtendedArrowHelper;
       
       // 添加用户数据以标识源和目标节点
-      (arrowHelper as any).userData = {
+      arrowHelper.userData = {
         sourceId: start.id,
         targetId: end.id,
         isResidual: isResidual
@@ -173,10 +201,10 @@ export class NetworkVisualizer {
         color,
         headLength,
         headWidth
-      );
+      ) as ExtendedArrowHelper;
 
       // 添加用户数据以标识源和目标节点
-      (arrow as any).userData = {
+      arrow.userData = {
         sourceId: start.id,
         targetId: end.id,
         isResidual: isResidual
@@ -196,7 +224,7 @@ export class NetworkVisualizer {
    * @param parentId 父节点ID
    */
   private addLabel(
-    mesh: THREE.Mesh,
+    mesh: ExtendedMesh,
     name: string,
     type: string,
     id: string,
@@ -243,7 +271,7 @@ export class NetworkVisualizer {
     sprite.scale.set(100, 50, 1);
     
     // 添加用户数据
-    sprite.userData = {
+    (sprite as ExtendedObject3D).userData = {
       parentId: parentId
     };
     
@@ -271,7 +299,7 @@ export class NetworkVisualizer {
     for (const nodeInfo of nodesData) { 
       const geometry = await createLayerGeometry(nodeInfo.node.type) as CustomBufferGeometry;
       const material = createLayerMaterial(nodeInfo.node.type);
-      let mesh: THREE.Mesh | THREE.Group;
+      let mesh: ExtendedMesh | THREE.Group;
       
       // 检查是否是自定义OBJ模型
       if ('isObject3D' in geometry && geometry.isObject3D && geometry.model) {
@@ -284,7 +312,7 @@ export class NetworkVisualizer {
         };
       } else {
         // 对于普通几何体，创建Mesh对象
-        mesh = new THREE.Mesh(geometry, material);
+        mesh = new THREE.Mesh(geometry, material) as ExtendedMesh;
         mesh.userData = {
           id: nodeInfo.id,
           type: nodeInfo.node.type,
@@ -296,10 +324,10 @@ export class NetworkVisualizer {
       mesh.position.set(nodeInfo.x, nodeInfo.y, nodeInfo.z);
 
       this._scene.add(mesh);
-      this._nodes.push(mesh as THREE.Mesh);
+      this._nodes.push(mesh as ExtendedMesh);
       
       // 添加标签
-      this.addLabel(mesh as THREE.Mesh, nodeInfo.node.name, nodeInfo.node.type, nodeInfo.node.id, nodeInfo.id);
+      this.addLabel(mesh as ExtendedMesh, nodeInfo.node.name, nodeInfo.node.type, nodeInfo.node.id, nodeInfo.id);
     }
 
     // 调整每个节点的朝向，使其z轴与到下一个节点的连线方向一致
@@ -354,7 +382,7 @@ export class NetworkVisualizer {
     networkDataParsed: NodeInfo[],
     buildNetworkConnections: (rootLayer: Layer) => Array<{source: string, target: string, isResidual?: boolean}>,
     createEdge: (
-      lines: (THREE.Line | THREE.ArrowHelper)[],
+      lines: (ExtendedLine | ExtendedArrowHelper)[],
       start: { x: number, y: number, z: number, id?: string },
       end: { x: number, y: number, z: number, id?: string },
       color: number,
@@ -389,16 +417,16 @@ export class NetworkVisualizer {
           const secondLastLine = this._lines[this._lines.length - 2];
           
           // 确保我们为线条添加了用户数据
-          if (!(lastLine as any).userData) {
-            (lastLine as any).userData = {
+          if (!lastLine.userData) {
+            lastLine.userData = {
               sourceId: conn.source,
               targetId: conn.target,
               isResidual: conn.isResidual
             };
           }
           
-          if (!(secondLastLine as any).userData) {
-            (secondLastLine as any).userData = {
+          if (!secondLastLine.userData) {
+            secondLastLine.userData = {
               sourceId: conn.source,
               targetId: conn.target,
               isResidual: conn.isResidual
@@ -448,14 +476,14 @@ export class NetworkVisualizer {
   /**
    * 获取节点列表
    */
-  public get nodes(): THREE.Mesh[] {
+  public get nodes(): ExtendedMesh[] {
     return this._nodes;
   }
 
   /**
    * 获取线条列表
    */
-  public get lines(): (THREE.Line | THREE.ArrowHelper)[] {
+  public get lines(): (ExtendedLine | ExtendedArrowHelper)[] {
     return this._lines;
   }
 }

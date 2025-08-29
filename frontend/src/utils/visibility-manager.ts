@@ -47,12 +47,12 @@ export class VisibilityManager {
     const lines = networkVisualizer.lines;
     
     // 检查当前是否显示子节点（检查第一个子节点的可见性）
-    const firstChild = nodes.find(node => allChildrenIds.includes(node.userData.id));
+    const firstChild = nodes.find(node => node.userData.id !== undefined && allChildrenIds.includes(node.userData.id));
     const shouldShow = firstChild ? !firstChild.visible : true;
     
     // 更新节点可见性
     nodes.forEach(node => {
-      if (allChildrenIds.includes(node.userData.id)) {
+      if (node.userData.id !== undefined && allChildrenIds.includes(node.userData.id)) {
         node.visible = shouldShow;
       }
     });

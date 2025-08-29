@@ -36,6 +36,7 @@
         >
       </div>
       <button @click="resetView" class="reset-button">重置视角</button>
+      <button @click="showAllLayers" class="show-all-button">显示所有层</button>
     </div>
     <div class="legend">
       <h3>层类型说明</h3>
@@ -43,6 +44,9 @@
         <div class="legend-color" :style="{ backgroundColor: `#${item.color.toString(16).padStart(6, '0')}` }"></div>
         <div class="legend-label">{{ key }} - {{ item.shape }}</div>
       </div>
+    </div>
+    <div class="instructions">
+      点击层节点以显示其子层
     </div>
   </div>
 </template>
@@ -57,6 +61,7 @@ import { NetworkVisualizer } from '../utils/network-visualization';
 import { ShapeFactory } from '../models/shapeFactory';
 import type { NodeInfo, LayerTypeInfo } from '../types/neural-network';
 import type { OrbitControls } from 'three/examples/jsm/Addons.js';
+import { VisibilityManager } from '@/utils/visibility-manager';
 
 export default defineComponent({
   name: 'NetworkVisualization',
@@ -102,6 +107,65 @@ export default defineComponent({
       camera = result.camera;
       renderer = result.renderer;
       controls = result.controls;
+      
+      // 添加点击事件监听器
+      if (renderer) {
+        renderer.domElement.addEventListener('click', onCanvasClick, false);
+        renderer.domElement.addEventListener('mousemove', onCanvasMouseMove, false);
+      }
+    };
+    
+    // 鼠标移动事件处理
+    const onCanvasMouseMove = (event: MouseEvent) => {
+      if (!renderer || !camera || !networkVisualizer) return;
+      
+      const mouse = new THREE.Vector2();
+      const rect = renderer.domElement.getBoundingClientRect();
+      
+      mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+      mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+      
+      const raycaster = new THREE.Raycaster();
+      raycaster.setFromCamera(mouse, camera);
+      
+      const intersects = raycaster.intersectObjects(networkVisualizer.nodes);
+      
+      // 更改鼠标样式以指示可点击
+      if (renderer.domElement) {
+        renderer.domElement.style.cursor = intersects.length > 0 ? 'pointer' : 'default';
+      }
+    };
+    
+    // 点击事件处理
+    const onCanvasClick = (event: MouseEvent) => {
+      if (!renderer || !camera || !networkVisualizer) return;
+      
+      const mouse = new THREE.Vector2();
+      const rect = renderer.domElement.getBoundingClientRect();
+      
+      mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+      mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+      
+      const raycaster = new THREE.Raycaster();
+      raycaster.setFromCamera(mouse, camera);
+      
+      const intersects = raycaster.intersectObjects(networkVisualizer.nodes);
+      
+      if (intersects.length > 0) {
+        const clickedObject = intersects[0].object;
+        VisibilityManager.toggleChildrenVisibility(
+          clickedObject,
+          networkVisualizer,
+          networkDataParsed.value,
+          scene
+        );
+      }
+    };
+    
+    // 显示所有层
+    const showAllLayers = () => {
+      if (!networkVisualizer) return;
+      VisibilityManager.showAllLayers(networkVisualizer, scene);
     };
     
     // 更新步长参数
@@ -139,6 +203,8 @@ export default defineComponent({
       
       if (result) {
         networkDataParsed.value = result;
+        // 默认隐藏所有子节点
+        VisibilityManager.hideAllChildren(result, networkVisualizer, scene);
       }
     };
     
@@ -160,6 +226,8 @@ export default defineComponent({
       
       if (result) {
         networkDataParsed.value = result;
+        // 默认隐藏所有子节点
+        VisibilityManager.hideAllChildren(result, networkVisualizer, scene);
       }
     };
     
@@ -197,6 +265,12 @@ export default defineComponent({
         networkVisualizer.clear();
       }
       if (renderer && canvasContainer.value) {
+        // 移除事件监听器
+        if (renderer.domElement) {
+          renderer.domElement.removeEventListener('click', onCanvasClick, false);
+          renderer.domElement.removeEventListener('mousemove', onCanvasMouseMove, false);
+        }
+        
         canvasContainer.value.removeChild(renderer.domElement);
         renderer.dispose();
       }
@@ -217,7 +291,8 @@ export default defineComponent({
       layerTypes,
       steps,
       updateSteps,
-      resetView
+      resetView,
+      showAllLayers
     };
   }
 });
@@ -257,7 +332,7 @@ export default defineComponent({
   width: 100%;
 }
 
-.reset-button {
+.reset-button, .show-all-button {
   background-color: #42b983;
   color: white;
   border: none;
@@ -265,9 +340,11 @@ export default defineComponent({
   border-radius: 4px;
   cursor: pointer;
   font-size: 14px;
+  margin-right: 5px;
+  margin-top: 5px;
 }
 
-.reset-button:hover {
+.reset-button:hover, .show-all-button:hover {
   background-color: #359c6d;
 }
 
@@ -301,5 +378,18 @@ export default defineComponent({
   height: 12px;
   margin-right: 8px;
   border-radius: 2px;
+}
+
+.instructions {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 10px 20px;
+  border-radius: 4px;
+  font-size: 14px;
+  text-align: center;
 }
 </style>

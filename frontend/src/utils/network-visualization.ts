@@ -74,8 +74,8 @@ export class NetworkVisualizer {
    */
   private createEdge(
     lines: (THREE.Line | THREE.ArrowHelper)[],
-    start: { x: number, y: number, z: number },
-    end: { x: number, y: number, z: number },
+    start: { x: number, y: number, z: number, id?: string },
+    end: { x: number, y: number, z: number, id?: string },
     color: number,
     isResidual: boolean
   ) {
@@ -118,6 +118,13 @@ export class NetworkVisualizer {
       const material = new THREE.LineBasicMaterial({ color });
       const line = new THREE.Line(geometry, material);
 
+      // 添加用户数据以标识源和目标节点
+      (line as any).userData = {
+        sourceId: start.id,
+        targetId: end.id,
+        isResidual: isResidual
+      };
+
       this._scene.add(line);
       lines.push(line);
       
@@ -142,6 +149,13 @@ export class NetworkVisualizer {
         arrowSize * 0.4
       );
       
+      // 添加用户数据以标识源和目标节点
+      (arrowHelper as any).userData = {
+        sourceId: start.id,
+        targetId: end.id,
+        isResidual: isResidual
+      };
+      
       this._scene.add(arrowHelper);
       lines.push(arrowHelper);
     } else {
@@ -161,6 +175,13 @@ export class NetworkVisualizer {
         headWidth
       );
 
+      // 添加用户数据以标识源和目标节点
+      (arrow as any).userData = {
+        sourceId: start.id,
+        targetId: end.id,
+        isResidual: isResidual
+      };
+
       this._scene.add(arrow);
       lines.push(arrow);
     }
@@ -172,12 +193,14 @@ export class NetworkVisualizer {
    * @param name 节点名称
    * @param type 节点类型
    * @param id 节点ID
+   * @param parentId 父节点ID
    */
   private addLabel(
     mesh: THREE.Mesh,
     name: string,
     type: string,
-    id: string
+    id: string,
+    parentId?: string
   ) {
     // 创建canvas元素用于绘制文本
     const canvas = document.createElement('canvas');
@@ -218,6 +241,11 @@ export class NetworkVisualizer {
     
     // 设置精灵大小
     sprite.scale.set(100, 50, 1);
+    
+    // 添加用户数据
+    sprite.userData = {
+      parentId: parentId
+    };
     
     // 将精灵添加到场景
     this._scene.add(sprite);
@@ -271,7 +299,7 @@ export class NetworkVisualizer {
       this._nodes.push(mesh as THREE.Mesh);
       
       // 添加标签
-      this.addLabel(mesh as THREE.Mesh, nodeInfo.node.name, nodeInfo.node.type, nodeInfo.node.id);
+      this.addLabel(mesh as THREE.Mesh, nodeInfo.node.name, nodeInfo.node.type, nodeInfo.node.id, nodeInfo.id);
     }
 
     // 调整每个节点的朝向，使其z轴与到下一个节点的连线方向一致
@@ -327,8 +355,8 @@ export class NetworkVisualizer {
     buildNetworkConnections: (rootLayer: Layer) => Array<{source: string, target: string, isResidual?: boolean}>,
     createEdge: (
       lines: (THREE.Line | THREE.ArrowHelper)[],
-      start: { x: number, y: number, z: number },
-      end: { x: number, y: number, z: number },
+      start: { x: number, y: number, z: number, id?: string },
+      end: { x: number, y: number, z: number, id?: string },
       color: number,
       isResidual: boolean
     ) => void
@@ -349,11 +377,34 @@ export class NetworkVisualizer {
       if (sourceNode && targetNode) {
         createEdge(
           this._lines,
-          { x: sourceNode.x, y: sourceNode.y, z: sourceNode.z },
-          { x: targetNode.x, y: targetNode.y, z: targetNode.z },
+          { x: sourceNode.x, y: sourceNode.y, z: sourceNode.z, id: conn.source },
+          { x: targetNode.x, y: targetNode.y, z: targetNode.z, id: conn.target },
           conn.isResidual ? 0xff0000 : 0x999999, // 残差连接使用红色，普通连接使用灰色
           conn?.isResidual ?? false, // 是否残差连接
         );
+        
+        // 为最后创建的线条添加用户数据
+        if (this._lines.length >= 2) {
+          const lastLine = this._lines[this._lines.length - 1];
+          const secondLastLine = this._lines[this._lines.length - 2];
+          
+          // 确保我们为线条添加了用户数据
+          if (!(lastLine as any).userData) {
+            (lastLine as any).userData = {
+              sourceId: conn.source,
+              targetId: conn.target,
+              isResidual: conn.isResidual
+            };
+          }
+          
+          if (!(secondLastLine as any).userData) {
+            (secondLastLine as any).userData = {
+              sourceId: conn.source,
+              targetId: conn.target,
+              isResidual: conn.isResidual
+            };
+          }
+        }
       } else {
         console.warn('Could not find nodes for connection:', conn);
       }
